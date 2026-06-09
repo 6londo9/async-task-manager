@@ -1,4 +1,4 @@
-name: docker-hub-push.yml
+name: Dockerhub push
 
 on:
   push:

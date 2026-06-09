@@ -62,39 +62,16 @@
             <version>1.16.5</version>
             <scope>compile</scope>
         </dependency>
-
-        <!--		 dependencies for openapi generation -->
-        <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-            <version>3.1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.annotation</groupId>
-            <artifactId>jakarta.annotation-api</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations</artifactId>
-            <version>2.2.30</version>
-        </dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-models</artifactId>
-            <version>2.2.30</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.8.8</version>
-        </dependency>
-
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -131,18 +108,6 @@
             <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>5.1.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>mockwebserver</artifactId>
-            <version>5.1.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -150,36 +115,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.openapitools</groupId>
-                <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>7.12.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <inputSpec>${project.basedir}/src/main/resources/openapi/async-tasks.yml</inputSpec>
-                    <generatorName>spring</generatorName>
-                    <output>${project.build.directory}/generated-sources/openapi</output>
-                    <modelPackage>com.backendDojo.asyncTaskManager.generated.models</modelPackage>
-                    <apiPackage>com.backendDojo.asyncTaskManager.generated.api</apiPackage>
-                    <invokerPackage>com.backendDojo.asyncTaskManager.generated.invoker</invokerPackage>
-                    <generateApiTests>false</generateApiTests>
-                    <generateModelTests>false</generateModelTests>
-                    <configOptions>
-                        <java8>true</java8>
-                        <useJakartaEe>true</useJakartaEe>
-                        <openApiNullable>false</openApiNullable>
-                        <useTags>true</useTags>
-                        <interfaceOnly>true</interfaceOnly>
-                        <delegatePattern>false</delegatePattern>
-                    </configOptions>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>

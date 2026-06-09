@@ -2,7 +2,7 @@ DB_USER=user
 DB_NAME=tasksdb
 DOCKER_PROFILE ?= dev
 SPRING_PROFILE ?= default
-APP_PORT=8081
+APP_PORT=8080
 
 .PHONY: compile start-app start-docker run-dev run-prod stop stop-app
 
