@@ -1,4 +1,4 @@
-name: pr-check.yml
+name: PR checks
 
 on: [pull_request]
 
