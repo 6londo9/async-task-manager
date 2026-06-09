@@ -8,7 +8,7 @@
         <version>4.0.6</version>
     </parent>
     <groupId>com.backenddojo</groupId>
-    <artifactId>asyncTaskManager</artifactId>
+    <artifactId>async-task-manager</artifactId>
     <version>1.0.0</version>
     <name>AsyncTaskManager</name>
     <description>AsyncTaskManager</description>
