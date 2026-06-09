@@ -1,0 +1,123 @@
+services:
+  async-task-manager:
+    image: 6londo9/async-task-manager:latest
+    container_name: async-task-manager
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - app-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    profiles:
+      - docker
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: tasksdb
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    profiles:
+      - dev
+      - docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d tasksdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - app-network
+    profiles:
+      - dev
+      - docker
+    restart: unless-stopped
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # Основные настройки Kafka
+      KAFKA_BROKER_ID: 1    # Уникальный идентификатор брокера
+
+      # Настройки KRaft (замена ZooKeeper)
+      KAFKA_NODE_ID: 1      # Идентификатор узла в KRaft
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'  # Конфигурация голосующих узлов
+      KAFKA_PROCESS_ROLES: 'broker,controller'  # Роли процесса (брокер и контроллер)
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'  # Имя слушателя для контроллера
+
+      # Настройки сетевых подключений
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093'  # Точки подключения
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'  # Внешний адрес брокера
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'  # Протоколы
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'  # Слушатель для взаимодействия брокеров
+
+      # Настройки репликации и транзакций
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1  # Фактор репликации для топика смещений
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0  # Задержка начального ребаланса
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1     # Минимальное число реплик для транзакций
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1  # Фактор репликации лога транзакций
+
+      # Идентификация кластера KRaft
+      KAFKA_CLUSTER_ID: 'KafkaKRaftCluster'
+      CLUSTER_ID: 'KafkaKRaftCluster'
+    volumes:
+      - kafka:/var/lib/kafka/data
+    networks:
+      - app-network
+    profiles:
+      - dev
+      - docker
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'local-cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:9092'
+    depends_on:
+      - kafka
+    networks:
+      - app-network
+    profiles:
+      - dev
+      - docker
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+  kafka:

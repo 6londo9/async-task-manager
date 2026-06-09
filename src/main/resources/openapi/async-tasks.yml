@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Async Task Manager API
+
+tags:
+  - name: AsyncTask
+
+paths:
+  /v1:
+    get:
+      tags:
+        - AsyncTask
+      operationId: getTasksInfo
+      summary: Get tasks info
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
