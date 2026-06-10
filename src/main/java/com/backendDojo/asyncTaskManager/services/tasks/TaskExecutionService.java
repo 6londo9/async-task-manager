@@ -31,11 +31,6 @@ public class TaskExecutionService {
     }
 
     @Transactional
-    @Retryable(
-            value = OptimisticLockException.class,
-            maxRetries = 3,
-            delay = 500
-    )
     public void processTaskWithRetry(Task task) {
         Task currentTask = taskRepository.findById(task.getId())
                 .orElseThrow(() -> new TaskNotFoundException(task.getId()));
@@ -51,5 +46,16 @@ public class TaskExecutionService {
         executorService.submit(() ->
                 taskStatusService.executeTask(savedTask)
         );
+    }
+
+    public void processNewTaskWithLock() {
+        taskRepository.findAndLockFirstNewTask()
+                .ifPresent(task -> {
+                    log.info("Worker picked task {} with SKIP LOCKED", task.getId());
+                    task.setStatus(TaskStatus.IN_PROGRESS);
+                    Task savedTask = taskRepository.save(task);
+                    executorService.submit(() ->
+                            taskStatusService.executeTask(savedTask));
+                });
     }
 }
