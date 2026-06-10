@@ -48,6 +48,7 @@ public class TaskExecutionService {
         );
     }
 
+    @Transactional
     public void processNewTaskWithLock() {
         taskRepository.findAndLockFirstNewTask()
                 .ifPresent(task -> {
