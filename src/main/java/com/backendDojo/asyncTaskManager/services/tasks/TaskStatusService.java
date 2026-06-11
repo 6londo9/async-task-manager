@@ -3,6 +3,7 @@ package com.backendDojo.asyncTaskManager.services.tasks;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TaskStatusService {
@@ -13,6 +14,7 @@ public class TaskStatusService {
         this.taskUpdateService = taskUpdateService;
     }
 
+    @Transactional
     public void executeTask(Task task) {
         try {
             Thread.sleep(task.getDuration());

@@ -1,5 +1,5 @@
 spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/tasksdb
-kafka:
-  bootstrap-servers: kafka:9092
+  kafka:
+    bootstrap-servers: kafka:9092
