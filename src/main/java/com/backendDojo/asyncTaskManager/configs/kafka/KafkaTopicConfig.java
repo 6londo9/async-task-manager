@@ -12,10 +12,20 @@ public class KafkaTopicConfig {
     @Value("${kafka.topics.tasks}")
     private String tasksTopicName;
 
+    @Value("${kafka.topics.tasks-dlq}")
+    private String tasksDlqTopicName;
+
     @Bean
     public NewTopic tasksTopic() {
         return TopicBuilder
                 .name(tasksTopicName)
+                .build();
+    }
+
+    @Bean
+    public NewTopic tasksDlqTopic() {
+        return TopicBuilder
+                .name(tasksDlqTopicName)
                 .build();
     }
 }

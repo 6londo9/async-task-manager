@@ -2,9 +2,28 @@ spring:
   application:
     name: asyncTaskManager
   datasource:
-    username: user
     url: jdbc:postgresql://localhost:5432/tasksdb
+    username: user
     password: password
+    hikari:
+      # Основные настройки пула
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000  # 5 минут
+      connection-timeout: 20000  # 20 секунд
+      max-lifetime: 1200000  # 20 минут
+
+      # Настройки производительности
+      auto-commit: false
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+
+      # Настройки для оптимистичной блокировки
+      transaction-isolation: TRANSACTION_READ_COMMITTED
+
+      # Метрики и мониторинг
+      register-mbeans: true
+      pool-name: TaskServicePool
   jpa:
     show-sql: true
     properties:
@@ -19,13 +38,15 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:/db/changelog/db.changelog-master.xml
-kafka:
-  bootstrap-servers: localhost:9092
-  topics:
-    tasks: tasks
+  kafka:
+    bootstrap-servers: localhost:29092
 worker:
   pool:
     size: 9
 logging:
   level:
     org.hibernate.SQL: DEBUG
+kafka:
+  topics:
+    tasks: tasks
+    tasks-dlq: tasks-dlq

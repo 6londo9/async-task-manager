@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 
 @Service
 public class TaskService {
@@ -18,16 +17,13 @@ public class TaskService {
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
     private final TaskRepository taskRepository;
-    private final ExecutorService executorService;
     private final TaskExecutionService taskExecutionService;
     private final KafkaTaskSender kafkaTaskSender;
 
     public TaskService(TaskRepository taskRepository,
-                       ExecutorService executorService,
                        TaskExecutionService taskExecutionService,
                        KafkaTaskSender kafkaTaskSender) {
         this.taskRepository = taskRepository;
-        this.executorService = executorService;
         this.taskExecutionService = taskExecutionService;
         this.kafkaTaskSender = kafkaTaskSender;
     }
@@ -40,9 +36,22 @@ public class TaskService {
         kafkaTaskSender.publishTask(taskRequestDTO);
     }
 
+//    @Scheduled(fixedDelay = 1000)
+//    public void processTask() {
+//        taskExecutionService.processNewTaskWithLock();
+//    }
+
     @Scheduled(fixedDelay = 1000)
     public void processTask() {
-        taskExecutionService.processNewTaskWithLock();
+        taskRepository.findFirstByStatus(TaskStatus.NEW)
+                .ifPresent(task -> {
+                    try {
+                        log.info("Processing task {}", task.getId());
+                        taskExecutionService.processTaskWithRetry(task);
+                    } catch (Exception ex) {
+                        kafkaTaskSender.publishErrorTaskToDlq(task, ex);
+                    }
+                });
     }
 
     @Scheduled(fixedDelay = 60000)
@@ -50,7 +59,11 @@ public class TaskService {
         taskRepository.findFirstByStatus(TaskStatus.FAILED)
                 .ifPresent(task -> {
                     log.info("Retrying failed task {}", task.getId());
-                    taskExecutionService.processTaskWithRetry(task);
+                    try {
+                        taskExecutionService.processTaskWithRetry(task);
+                    } catch (Exception ex) {
+                        kafkaTaskSender.publishErrorTaskToDlq(task, ex);
+                    }
                 });
     }
 }

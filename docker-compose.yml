@@ -5,8 +5,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
     environment:
@@ -58,6 +60,7 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       # Основные настройки Kafka
       KAFKA_BROKER_ID: 1    # Уникальный идентификатор брокера
@@ -69,10 +72,10 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'  # Имя слушателя для контроллера
 
       # Настройки сетевых подключений
-      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093'  # Точки подключения
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'  # Внешний адрес брокера
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'  # Протоколы
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'  # Слушатель для взаимодействия брокеров
+      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093'  # Точки подключения
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka:9092,EXTERNAL://localhost:29092'  # Внешний адрес брокера
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT'  # Протоколы
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'  # Слушатель для взаимодействия брокеров
 
       # Настройки репликации и транзакций
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1  # Фактор репликации для топика смещений
@@ -91,7 +94,7 @@ services:
       - dev
       - docker
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"]
       interval: 30s
       timeout: 10s
       retries: 3
