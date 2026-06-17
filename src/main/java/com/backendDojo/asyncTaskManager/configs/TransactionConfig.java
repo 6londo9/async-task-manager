@@ -11,10 +11,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Configuration
 public class TransactionConfig {
 
-    @Bean
-    public PlatformTransactionManager transactionManager(HikariDataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
-    }
+    // This actually breaks hibernate persist context
+//    @Bean
+//    public PlatformTransactionManager transactionManager(HikariDataSource dataSource) {
+//        return new DataSourceTransactionManager(dataSource);
+//    }
 
     @Bean
     public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {

@@ -1,20 +1,30 @@
 package com.backendDojo.asyncTaskManager.services.tasks;
 
+import com.backendDojo.asyncTaskManager.exceptions.TaskAlreadyExistsException;
+import com.backendDojo.asyncTaskManager.exceptions.TaskStallException;
 import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
 import com.backendDojo.asyncTaskManager.repositories.TaskRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 @Service
 public class TaskService {
 
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
+
+    @Value("${app.retry-count.tasks}")
+    private int retryCount;
+    @Value("${app.stall-wait-time.tasks}")
+    private int stallWaitTime;
 
     private final TaskRepository taskRepository;
     private final TaskExecutionService taskExecutionService;
@@ -32,6 +42,21 @@ public class TaskService {
         return taskRepository.findById(id);
     }
 
+    @Transactional
+    public Task saveTask(TaskRequestDTO taskRequestDTO) {
+        if (taskRepository.existsByNameAndUserId(taskRequestDTO.name(), taskRequestDTO.userId())) {
+            throw new TaskAlreadyExistsException("Task with name: " + taskRequestDTO.name() +
+                    " and userId: " + taskRequestDTO.userId() + " already exists");
+        }
+
+        Task task = new Task();
+        task.setStatus(TaskStatus.NEW);
+        task.setName(taskRequestDTO.name());
+        task.setDuration(taskRequestDTO.duration());
+        task.setUserId(taskRequestDTO.userId());
+        return taskRepository.save(task);
+    }
+
     public void publishTask(TaskRequestDTO taskRequestDTO) {
         kafkaTaskSender.publishTask(taskRequestDTO);
     }
@@ -41,29 +66,41 @@ public class TaskService {
 //        taskExecutionService.processNewTaskWithLock();
 //    }
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 1_000)
     public void processTask() {
         taskRepository.findFirstByStatus(TaskStatus.NEW)
                 .ifPresent(task -> {
-                    try {
-                        log.info("Processing task {}", task.getId());
-                        taskExecutionService.processTaskWithRetry(task);
-                    } catch (Exception ex) {
-                        kafkaTaskSender.publishErrorTaskToDlq(task, ex);
-                    }
+                    log.info("Processing task {}", task.getId());
+                    taskExecutionService.processTaskWithRetry(task);
                 });
     }
 
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 60_000)
     public void processFailedTasks() {
-        taskRepository.findFirstByStatus(TaskStatus.FAILED)
+        taskRepository.findFirstByStatusAndRetryCountLessThan(TaskStatus.FAILED, retryCount)
                 .ifPresent(task -> {
                     log.info("Retrying failed task {}", task.getId());
                     try {
                         taskExecutionService.processTaskWithRetry(task);
                     } catch (Exception ex) {
-                        kafkaTaskSender.publishErrorTaskToDlq(task, ex);
+                        if (task.getRetryCount() >= retryCount) {
+                            taskExecutionService.failTaskWithNotification(task, ex);
+                        }
                     }
+                });
+    }
+
+    @Scheduled(fixedDelay = 90_000)
+    public void processStalledTasks() {
+        OffsetDateTime now = OffsetDateTime.now();
+        taskRepository.findFirstStalledTask(now.minusMinutes(stallWaitTime))
+                .ifPresent(task -> {
+                    if (task.getRetryCount() >= retryCount) {
+                        taskExecutionService.failTaskWithNotification(task, new TaskStallException(retryCount));
+                    }
+
+                    log.info("Retrying stalled task {}, retries {}", task.getId(), task.getRetryCount());
+                    taskExecutionService.processTaskWithRetry(task);
                 });
     }
 }

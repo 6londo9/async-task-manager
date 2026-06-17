@@ -14,5 +14,6 @@
         </createTable>
         <addPrimaryKey tableName="tasks" columnNames="id"/>
         <addNotNullConstraint tableName="tasks" columnName="status"/>
+        <addNotNullConstraint tableName="tasks" columnName="name"/>
     </changeSet>
 </databaseChangeLog>

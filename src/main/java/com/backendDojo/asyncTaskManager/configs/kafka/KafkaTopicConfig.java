@@ -1,7 +1,6 @@
 package com.backendDojo.asyncTaskManager.configs.kafka;
 
 import org.apache.kafka.clients.admin.NewTopic;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
@@ -9,23 +8,30 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
-    @Value("${kafka.topics.tasks}")
-    private String tasksTopicName;
+    private final KafkaTopicProperties kafkaTopicProperties;
 
-    @Value("${kafka.topics.tasks-dlq}")
-    private String tasksDlqTopicName;
+    public KafkaTopicConfig(KafkaTopicProperties kafkaTopicProperties) {
+        this.kafkaTopicProperties = kafkaTopicProperties;
+    }
 
     @Bean
     public NewTopic tasksTopic() {
         return TopicBuilder
-                .name(tasksTopicName)
+                .name(kafkaTopicProperties.getTasks())
                 .build();
     }
 
     @Bean
-    public NewTopic tasksDlqTopic() {
+    public NewTopic notificationsTopic() {
         return TopicBuilder
-                .name(tasksDlqTopicName)
+                .name(kafkaTopicProperties.getNotifications())
+                .build();
+    }
+
+    @Bean
+    public NewTopic notificationsCdcTopic() {
+        return TopicBuilder
+                .name(kafkaTopicProperties.getNotificationsCdc())
                 .build();
     }
 }

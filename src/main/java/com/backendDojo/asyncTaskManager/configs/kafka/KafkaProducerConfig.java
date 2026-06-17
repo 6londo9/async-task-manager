@@ -1,7 +1,5 @@
 package com.backendDojo.asyncTaskManager.configs.kafka;
 
-import com.backendDojo.asyncTaskManager.models.dtos.DlqMessageDto;
-import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +20,7 @@ public class KafkaProducerConfig {
     private String bootstrapServers;
 
     @Bean
-    public ProducerFactory<String, TaskRequestDTO> producerFactory() {
+    public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -31,21 +29,7 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, TaskRequestDTO> kafkaTemplate(ProducerFactory<String, TaskRequestDTO> producerFactory) {
+    public KafkaTemplate<String, Object> taskKafkaTemplate(ProducerFactory<String, Object> producerFactory) {
         return new KafkaTemplate<>(producerFactory);
-    }
-
-    @Bean
-    public ProducerFactory<String, DlqMessageDto> dlqProducerFactory() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
-        return new DefaultKafkaProducerFactory<>(props);
-    }
-
-    @Bean
-    public KafkaTemplate<String, DlqMessageDto> dlqKafkaTemplate(ProducerFactory<String, DlqMessageDto> dlqProducerFactory) {
-        return new KafkaTemplate<>(dlqProducerFactory);
     }
 }
