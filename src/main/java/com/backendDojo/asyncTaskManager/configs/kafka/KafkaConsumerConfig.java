@@ -1,5 +1,6 @@
 package com.backendDojo.asyncTaskManager.configs.kafka;
 
+import com.backendDojo.asyncTaskManager.models.dtos.kafka.NotificationMessage;
 import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -21,20 +22,40 @@ public class KafkaConsumerConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
+    @Value("${app.kafka.tasks.consumers.group-id}")
+    private String taskGroupId;
+    @Value("${app.kafka.notifications.consumers.group-id}")
+    private String notificationGroupId;
 
     @Bean
-    public ConsumerFactory<String, TaskRequestDTO> consumerFactory() {
+    public ConsumerFactory<String, TaskRequestDTO> taskConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "task-group");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, taskGroupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(TaskRequestDTO.class));
     }
 
     @Bean
-    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskRequestDTO>> kafkaListenerContainerFactory(ConsumerFactory<String, TaskRequestDTO> consumerFactory) {
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskRequestDTO>> kafkaTaskListenerContainerFactory(ConsumerFactory<String, TaskRequestDTO> taskConsumerFactory) {
         ConcurrentKafkaListenerContainerFactory<String, TaskRequestDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory);
+        factory.setConsumerFactory(taskConsumerFactory);
+        return factory;
+    }
+
+    @Bean
+    public ConsumerFactory<String, NotificationMessage> notificationConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, notificationGroupId);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(NotificationMessage.class));
+    }
+
+    @Bean
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, NotificationMessage>> kafkaNotificationListenerContainerFactory(ConsumerFactory<String, NotificationMessage> notificationConsumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, NotificationMessage> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(notificationConsumerFactory);
         return factory;
     }
 }

@@ -4,6 +4,7 @@ import com.backendDojo.asyncTaskManager.exceptions.TaskNotFoundException;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
 import com.backendDojo.asyncTaskManager.repositories.TaskRepository;
+import com.backendDojo.asyncTaskManager.services.notifications.NotificationService;
 import jakarta.annotation.PreDestroy;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.OffsetDateTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -29,17 +31,20 @@ public class TaskExecutionService {
     private final ExecutorService executorService;
     private final TaskStatusService taskStatusService;
     private final TaskUpdateService taskUpdateService;
+    private final NotificationService notificationService;
     private final PlatformTransactionManager transactionManager;
 
     public TaskExecutionService(TaskRepository taskRepository,
                                 ExecutorService executorService,
                                 TaskStatusService taskStatusService,
                                 TaskUpdateService taskUpdateService,
+                                NotificationService notificationService,
                                 PlatformTransactionManager transactionManager) {
         this.taskRepository = taskRepository;
         this.executorService = executorService;
         this.taskStatusService = taskStatusService;
         this.taskUpdateService = taskUpdateService;
+        this.notificationService = notificationService;
         this.transactionManager = transactionManager;
     }
 
@@ -49,21 +54,24 @@ public class TaskExecutionService {
     )
     @Retryable(
             value = OptimisticLockException.class,
-            maxRetries = 3,
-            delay = 500,
-            multiplier = 2
+            maxRetriesString = "${app.retry-count.tasks}",
+            delay = 500
     )
     public void processTaskWithRetry(Task task) {
         try {
             Task currentTask = taskRepository.findById(task.getId())
                     .orElseThrow(() -> new TaskNotFoundException(task.getId()));
 
-            if (currentTask.getStatus() != TaskStatus.NEW) {
+            if (currentTask.getStatus() == TaskStatus.IN_PROGRESS || currentTask.getStatus() == TaskStatus.COMPLETED) {
                 log.warn("Task {} already in processing or completed", task.getId());
                 return;
             }
 
+            if (currentTask.getStatus() == TaskStatus.FAILED) {
+                currentTask.incrementRetryCounter();
+            }
             currentTask.setStatus(TaskStatus.IN_PROGRESS);
+            currentTask.setStartedAt(OffsetDateTime.now());
 
             Task savedTask = taskRepository.save(currentTask);
 
@@ -86,6 +94,26 @@ public class TaskExecutionService {
                 });
     }
 
+    @Transactional
+    @Retryable(
+            value = OptimisticLockException.class,
+            maxRetriesString = "${app.retry-count.tasks}",
+            delay = 500
+    )
+    public void failTaskWithNotification(Task task, Exception ex) {
+        try {
+            taskUpdateService.updateTaskStatus(
+                    task.getId(),
+                    TaskStatus.FAILED,
+                    "Error: " + ex.getMessage()
+            );
+            notificationService.saveNotificationForTask(task.getId(), true);
+        } catch (OptimisticLockException e) {
+            log.warn("Concurrent modification detected for task {}", task.getId());
+            throw e;
+        }
+    }
+
     private void executeTaskWithNewConnection(Task task) {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -99,6 +127,7 @@ public class TaskExecutionService {
                         TaskStatus.COMPLETED,
                         "Task completed successfully"
                 );
+                notificationService.saveNotificationForTask(task.getId(), false);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 taskUpdateService.updateTaskStatus(

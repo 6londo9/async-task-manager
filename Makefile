@@ -4,30 +4,21 @@ DOCKER_PROFILE ?= dev
 SPRING_PROFILE ?= default
 APP_PORT=8080
 
-.PHONY: compile start-app start-docker run-dev run-prod stop stop-app
+.PHONY: package start-docker run-dev run-prod stop
 
-compile:
-	mvn clean compile
-
-start-app:
-	mvn spring-boot:run -Dspring-boot.run.profiles=$(SPRING_PROFILE)
+package:
+	mvn clean package
 
 start-docker:
 	docker compose --profile $(DOCKER_PROFILE) up -d
 
 run-dev:
-	$(MAKE) compile
+	$(MAKE) package
 	$(MAKE) start-docker
-	$(MAKE) start-app
 
 run-prod:
-	$(MAKE) compile
+	$(MAKE) package
 	$(MAKE) start-docker DOCKER_PROFILE=docker
-	$(MAKE) start-app SPRING_PROFILE=docker
 
 stop:
-	$(MAKE) stop-app
 	docker compose --profile "*" down
-
-stop-app:
-	@PID=$$(lsof -t -i:$(APP_PORT)); if [ -n "$$PID" ]; then kill -9 $$PID || true; fi

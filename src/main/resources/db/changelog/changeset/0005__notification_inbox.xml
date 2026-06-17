@@ -1,0 +1,21 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+    <changeSet id="2026-06-16" author="6londo9">
+        <createTable tableName="notifications_inbox">
+            <column name="user_id" type="bigint"/>
+            <column name="task_id" type="bigint"/>
+            <column name="is_processed" type="boolean"/>
+            <column name="started_at" type="timestamptz"/>
+        </createTable>
+        <addPrimaryKey tableName="notifications_inbox" columnNames="task_id, user_id"/>
+        <addForeignKeyConstraint baseTableName="notifications_inbox" baseColumnNames="task_id, user_id"
+                                 constraintName="fk__notifications_inbox_to_notifications"
+                                 referencedTableName="notifications"
+                                 referencedColumnNames="task_id, user_id"/>
+        <addNotNullConstraint tableName="notifications_inbox" columnName="task_id"/>
+        <addNotNullConstraint tableName="notifications_inbox" columnName="user_id"/>
+    </changeSet>
+</databaseChangeLog>

@@ -25,7 +25,7 @@ spring:
       register-mbeans: true
       pool-name: TaskServicePool
   jpa:
-    show-sql: true
+#    show-sql: true
     properties:
       hibernate:
         format_sql: true
@@ -40,13 +40,51 @@ spring:
     change-log: classpath:/db/changelog/db.changelog-master.xml
   kafka:
     bootstrap-servers: localhost:29092
+    streams:
+      application-id: asyncTaskManagerCdcTransformer
 worker:
   pool:
     size: 9
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-kafka:
-  topics:
-    tasks: tasks
-    tasks-dlq: tasks-dlq
+#logging:
+#  level:
+#    org.hibernate.SQL: DEBUG
+app:
+  stall-wait-time:
+    tasks: 15 # Stored in minutes
+    notifications: 5 # Stored in minutes
+  retry-count:
+    tasks: 3
+  kafka:
+    topics:
+      tasks: tasks
+      notifications: notifications
+      notifications-cdc: cdc.public.notifications
+    tasks:
+      consumers:
+        group-id: task-group
+    notifications:
+      consumers:
+        group-id: notification-group
+  debezium:
+    url: 'http://localhost:8083'
+    name: 'postgres-cdc-connector'
+    config:
+      connector:
+        class: 'io.debezium.connector.postgresql.PostgresConnector'
+      tasks:
+        max: '1'
+      plugin:
+        name: 'pgoutput'
+      database:
+        hostname: 'postgres'
+        port: '5432'
+        user: 'user'
+        password: 'password'
+        dbname: 'tasksdb'
+      topic:
+        prefix: 'cdc'
+      table:
+        include:
+          list: 'public.notifications'
+      snapshot:
+        mode: 'no_data'

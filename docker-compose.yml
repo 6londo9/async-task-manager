@@ -1,5 +1,22 @@
 services:
-  async-task-manager:
+  async-task-manager-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: async-task-manager
+    depends_on:
+      - postgres
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - app-network
+    profiles:
+      - dev
+    restart: unless-stopped
+  async-task-manager-docker:
     image: 6londo9/async-task-manager:latest
     container_name: async-task-manager
     ports:
@@ -32,6 +49,7 @@ services:
     profiles:
       - dev
       - docker
+    command: ["postgres", "-c", "wal_level=logical"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d tasksdb"]
       interval: 10s
@@ -107,8 +125,31 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: 'local-cluster'
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:9092'
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: 'debezium'
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: 'http://debezium:8083'
     depends_on:
       - kafka
+      - debezium
+    networks:
+      - app-network
+    profiles:
+      - dev
+      - docker
+    restart: unless-stopped
+  debezium:
+    image: debezium/connect:2.7.3.Final
+    container_name: debezium
+    ports:
+      - "8083:8083"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - GROUP_ID=1
+      - CONFIG_STORAGE_TOPIC=connect_configs
+      - OFFSET_STORAGE_TOPIC=connect_offsets
+      - STATUS_STORAGE_TOPIC=connect_statuses
+    depends_on:
+      - kafka
+      - postgres
     networks:
       - app-network
     profiles:
