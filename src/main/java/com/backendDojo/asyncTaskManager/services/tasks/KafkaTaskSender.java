@@ -2,22 +2,30 @@ package com.backendDojo.asyncTaskManager.services.tasks;
 
 import com.backendDojo.asyncTaskManager.configs.kafka.KafkaTopicProperties;
 import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
-import com.backendDojo.asyncTaskManager.services.kafka.KafkaProducerService;
-import com.backendDojo.asyncTaskManager.models.dtos.kafka.Message;
+import com.backendDojo.asyncTaskManager.models.dtos.kafka.CreateTaskMessage;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class KafkaTaskSender {
 
     private final KafkaTopicProperties kafkaTopicProperties;
-    private final KafkaProducerService kafkaProducerService;
 
-    public KafkaTaskSender(KafkaTopicProperties kafkaTopicProperties, KafkaProducerService kafkaProducerService) {
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    public KafkaTaskSender(KafkaTopicProperties kafkaTopicProperties, KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTopicProperties = kafkaTopicProperties;
-        this.kafkaProducerService = kafkaProducerService;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void publishTask(TaskRequestDTO taskRequestDTO) {
-        kafkaProducerService.send(new Message(kafkaTopicProperties.getTasks(), taskRequestDTO));
+    public void publishTask(Long userId, TaskRequestDTO taskRequestDTO) {
+        kafkaTemplate.send(
+                kafkaTopicProperties.getTasks(),
+                new CreateTaskMessage(
+                        taskRequestDTO.name(),
+                        taskRequestDTO.duration(),
+                        userId
+                )
+        );
     }
 }

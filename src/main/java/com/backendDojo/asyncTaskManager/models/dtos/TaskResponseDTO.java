@@ -11,7 +11,9 @@ public record TaskResponseDTO(@Schema(description = "Идентификатор 
                               @Schema(description = "Статус задачи", requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, example = "COMPLETED")
                               String status,
                               @Schema(description = "Результат выполнения задачи", requiredMode = Schema.RequiredMode.NOT_REQUIRED, minLength = 1, example = "Task completed successfully")
-                              String result) {
+                              String result,
+                              @Schema(description = "Идентификатор пользователя", requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0", maximum = "9223372036854775807", example = "23")
+                              Long userId) {
     public TaskResponseDTO {
         if (id == null) {
             throw new IllegalArgumentException("Идентификатор задачи обязателен");
@@ -21,6 +23,9 @@ public record TaskResponseDTO(@Schema(description = "Идентификатор 
         }
         if (StringUtils.isBlank(status)) {
             throw new IllegalArgumentException("Статус задачи обязателен");
+        }
+        if (userId == null) {
+            throw new IllegalArgumentException("Идентификатор пользователя обязателен");
         }
     }
 }

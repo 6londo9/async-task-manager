@@ -45,11 +45,8 @@ public class NotificationSenderService {
             if (inbox.getStartedAt() != null && inbox.getStartedAt().plusMinutes(stallWaitTime).isBefore(now)) {
                 return;
             }
-
-            inbox.setStartedAt(now);
         } else {
             inbox = new NotificationInbox();
-            inbox.setStartedAt(now);
             Optional<Notification> notificationOpt = notificationRepository.findById(id);
             if (notificationOpt.isEmpty()) {
                 log.error("No notification found with id {}", id);
@@ -57,6 +54,7 @@ public class NotificationSenderService {
             }
             inbox.setNotification(notificationOpt.get());
         }
+        inbox.setStartedAt(now);
         notificationInboxRepository.save(inbox);
 
         log.info("Sending notification message to the user: [{}] about task: [{}] with status: [{}]",

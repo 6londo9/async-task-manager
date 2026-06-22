@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
@@ -29,4 +30,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     Optional<Task> findFirstStalledTask(OffsetDateTime cutoffTime);
 
     boolean existsByNameAndUserId(String name, long userId);
+
+    List<Task> findByUserId(Long userId);
 }
