@@ -3,6 +3,7 @@ package com.backendDojo.asyncTaskManager.services.tasks;
 import com.backendDojo.asyncTaskManager.exceptions.TaskAlreadyExistsException;
 import com.backendDojo.asyncTaskManager.exceptions.TaskStallException;
 import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
+import com.backendDojo.asyncTaskManager.models.dtos.kafka.CreateTaskMessage;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
 import com.backendDojo.asyncTaskManager.repositories.TaskRepository;
@@ -10,11 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
+
+import static com.backendDojo.asyncTaskManager.configs.security.UserAuthHeaderFilter.ADMIN_ID;
 
 @Service
 public class TaskService {
@@ -38,12 +43,23 @@ public class TaskService {
         this.kafkaTaskSender = kafkaTaskSender;
     }
 
-    public Optional<Task> findById(Long id) {
-        return taskRepository.findById(id);
+    public Optional<Task> findById(Long id, Long userId) {
+        return taskRepository.findById(id).map(task -> {
+            if (userId.equals(ADMIN_ID) || userId.equals(task.getUserId())) {
+                return task;
+            }
+            throw new BadCredentialsException("User doesn't have permission to perform this operation");
+        });
+    }
+
+    public List<Task> findUsersTask(Long userId) {
+        return userId.equals(ADMIN_ID)
+                ? taskRepository.findAll()
+                : taskRepository.findByUserId(userId);
     }
 
     @Transactional
-    public Task saveTask(TaskRequestDTO taskRequestDTO) {
+    public Task saveTask(CreateTaskMessage taskRequestDTO) {
         if (taskRepository.existsByNameAndUserId(taskRequestDTO.name(), taskRequestDTO.userId())) {
             throw new TaskAlreadyExistsException("Task with name: " + taskRequestDTO.name() +
                     " and userId: " + taskRequestDTO.userId() + " already exists");
@@ -57,8 +73,8 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    public void publishTask(TaskRequestDTO taskRequestDTO) {
-        kafkaTaskSender.publishTask(taskRequestDTO);
+    public void publishTask(Long userId, TaskRequestDTO taskRequestDTO) {
+        kafkaTaskSender.publishTask(userId, taskRequestDTO);
     }
 
 //    @Scheduled(fixedDelay = 1000)

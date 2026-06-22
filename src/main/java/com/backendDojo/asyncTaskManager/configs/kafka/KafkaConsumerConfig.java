@@ -1,5 +1,6 @@
 package com.backendDojo.asyncTaskManager.configs.kafka;
 
+import com.backendDojo.asyncTaskManager.models.dtos.kafka.CreateTaskMessage;
 import com.backendDojo.asyncTaskManager.models.dtos.kafka.NotificationMessage;
 import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -28,17 +29,17 @@ public class KafkaConsumerConfig {
     private String notificationGroupId;
 
     @Bean
-    public ConsumerFactory<String, TaskRequestDTO> taskConsumerFactory() {
+    public ConsumerFactory<String, CreateTaskMessage> taskConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, taskGroupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(TaskRequestDTO.class));
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(CreateTaskMessage.class));
     }
 
     @Bean
-    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskRequestDTO>> kafkaTaskListenerContainerFactory(ConsumerFactory<String, TaskRequestDTO> taskConsumerFactory) {
-        ConcurrentKafkaListenerContainerFactory<String, TaskRequestDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, CreateTaskMessage>> kafkaTaskListenerContainerFactory(ConsumerFactory<String, CreateTaskMessage> taskConsumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, CreateTaskMessage> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(taskConsumerFactory);
         return factory;
     }
