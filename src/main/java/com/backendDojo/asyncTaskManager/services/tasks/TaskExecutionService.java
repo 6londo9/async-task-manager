@@ -22,6 +22,8 @@ import java.time.OffsetDateTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.backendDojo.asyncTaskManager.configs.security.UserAuthHeaderFilter.ADMIN_ID;
+
 @Service
 public class TaskExecutionService {
 
@@ -63,7 +65,7 @@ public class TaskExecutionService {
                     .orElseThrow(() -> new TaskNotFoundException(task.getId()));
 
             if (currentTask.getStatus() == TaskStatus.IN_PROGRESS || currentTask.getStatus() == TaskStatus.COMPLETED) {
-                log.warn("Task {} already in processing or completed", task.getId());
+                log.warn("Task with id [{}] already in processing or completed", task.getId());
                 return;
             }
 
@@ -77,7 +79,7 @@ public class TaskExecutionService {
 
             executorService.submit(() -> executeTaskWithNewConnection(savedTask));
         } catch (OptimisticLockException e) {
-            log.warn("Concurrent modification detected for task {}", task.getId());
+            log.warn("Concurrent modification detected for task with id: [{}]", task.getId());
             throw e;
         }
     }
@@ -86,7 +88,7 @@ public class TaskExecutionService {
     public void processNewTaskWithLock() {
         taskRepository.findAndLockFirstNewTask()
                 .ifPresent(task -> {
-                    log.info("Worker picked task {} with SKIP LOCKED", task.getId());
+                    log.info("Worker picked task with id: [{}] with SKIP LOCKED", task.getId());
                     task.setStatus(TaskStatus.IN_PROGRESS);
                     Task savedTask = taskRepository.save(task);
                     executorService.submit(() ->
@@ -107,9 +109,9 @@ public class TaskExecutionService {
                     TaskStatus.FAILED,
                     "Error: " + ex.getMessage()
             );
-            notificationService.saveNotificationForTask(task.getId(), true);
+            notificationService.saveTaskResultNotification(task.getId(), ADMIN_ID);
         } catch (OptimisticLockException e) {
-            log.warn("Concurrent modification detected for task {}", task.getId());
+            log.warn("Concurrent modification detected for task with id: [{}]", task.getId());
             throw e;
         }
     }
@@ -127,7 +129,8 @@ public class TaskExecutionService {
                         TaskStatus.COMPLETED,
                         "Task completed successfully"
                 );
-                notificationService.saveNotificationForTask(task.getId(), false);
+                log.info("Task with id: [{}] completed successfully", task.getId());
+                notificationService.saveTaskResultNotification(task.getId(), task.getUserId());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 taskUpdateService.updateTaskStatus(
@@ -136,7 +139,7 @@ public class TaskExecutionService {
                         "Task interrupted: " + e.getMessage()
                 );
             } catch (Exception e) {
-                log.error("Error executing task {}", task.getId(), e);
+                log.error("Error executing task with id: [{}]", task.getId(), e);
                 taskUpdateService.updateTaskStatus(
                         task.getId(),
                         TaskStatus.FAILED,

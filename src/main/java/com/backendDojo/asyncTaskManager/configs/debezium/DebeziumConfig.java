@@ -57,9 +57,9 @@ public class DebeziumConfig {
                         .contentType(MediaType.APPLICATION_JSON)
                         .retrieve()
                         .body(String.class);
-                log.debug("Debezium connector config posted successfully: {}", response);
+                log.debug("Debezium connector config posted successfully: [{}]", response);
             } catch (Exception e) {
-                log.warn("Debezium connector config post failed: {}", e.getMessage());
+                log.warn("Debezium connector config post failed: [{}]", e.getMessage());
             }
         };
     }

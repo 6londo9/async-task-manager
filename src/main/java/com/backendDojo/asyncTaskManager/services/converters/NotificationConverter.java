@@ -10,8 +10,7 @@ import org.mapstruct.Mappings;
 public interface NotificationConverter {
 
     @Mappings({
-            @Mapping(source = "id.userId", target = "userId"),
-            @Mapping(source = "id.taskId", target = "taskId")
+            @Mapping(target = "notificationId", source = "id")
     })
     NotificationMessage convertToMessage(Notification notification);
 }

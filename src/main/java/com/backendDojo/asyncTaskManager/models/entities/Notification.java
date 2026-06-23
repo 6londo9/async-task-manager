@@ -1,12 +1,10 @@
 package com.backendDojo.asyncTaskManager.models.entities;
 
-import com.backendDojo.asyncTaskManager.models.entities.keys.NotificationMappingKey;
-import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.util.Objects;
@@ -15,28 +13,38 @@ import java.util.Objects;
 @Table(name = "notifications")
 public class Notification {
 
-    @EmbeddedId
-    private NotificationMappingKey id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id")
-    @MapsId("taskId")
-    private Task task;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    public NotificationMappingKey getId() {
+    @Column(length = 300, nullable = false)
+    private String message;
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(NotificationMappingKey id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public Task getTask() {
-        return task;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setTask(Task task) {
-        this.task = task;
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     @Override

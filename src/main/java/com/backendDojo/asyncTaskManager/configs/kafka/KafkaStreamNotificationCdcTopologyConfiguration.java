@@ -53,12 +53,11 @@ public class KafkaStreamNotificationCdcTopologyConfiguration {
                                 }
 
                                 return new NotificationMessage(
-                                        requiredLong(after, "task_id"),
-                                        requiredLong(after, "user_id")
+                                        requiredLong(after, "id")
                                 );
                             })
                             .selectKey((sourceKey, message) ->
-                                    String.valueOf(message.taskId())
+                                    String.valueOf(message.notificationId())
                             );
 
             notificationMessages.to(
@@ -68,7 +67,7 @@ public class KafkaStreamNotificationCdcTopologyConfiguration {
 
             return notificationMessages;
         } catch (Exception ex) {
-            log.error("Error occurred while processing kafka stream notification streams: {}", ex.getMessage());
+            log.error("Error occurred while processing kafka stream notification streams: [{}]", ex.getMessage());
             throw ex;
         }
     }

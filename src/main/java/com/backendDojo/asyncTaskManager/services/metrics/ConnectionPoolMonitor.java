@@ -21,11 +21,11 @@ public class ConnectionPoolMonitor {
         this.meterRegistry = meterRegistry;
     }
 
-    @Scheduled(fixedRate = 60000) // каждую минуту
+    @Scheduled(fixedRate = 60_000) // каждую минуту
     public void monitorConnectionPool() {
         HikariPoolMXBean poolMXBean = dataSource.getHikariPoolMXBean();
 
-        log.info("Connection pool status: active={}, idle={}, total={}",
+        log.info("Connection pool status: active=[{}], idle=[{}], total=[{}]",
                 poolMXBean.getActiveConnections(),
                 poolMXBean.getIdleConnections(),
                 poolMXBean.getTotalConnections()

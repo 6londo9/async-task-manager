@@ -1,12 +1,10 @@
 package com.backendDojo.asyncTaskManager.models.entities;
 
-import com.backendDojo.asyncTaskManager.models.entities.keys.NotificationMappingKey;
 import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinColumns;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -18,15 +16,12 @@ import java.util.Objects;
 @Entity
 public class NotificationInbox {
 
-    @EmbeddedId
-    private NotificationMappingKey id;
+    @Id
+    private Long notificationId;
 
     @MapsId
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "task_id", referencedColumnName = "task_id"),
-            @JoinColumn(name = "user_id", referencedColumnName = "user_id")
-    })
+    @JoinColumn(name = "notification_id", referencedColumnName = "id")
     private Notification notification;
 
     @Column(name = "is_processed", nullable = false)
@@ -35,12 +30,12 @@ public class NotificationInbox {
     @Column(name = "started_at")
     private OffsetDateTime startedAt;
 
-    public NotificationMappingKey getId() {
-        return id;
+    public Long getNotificationId() {
+        return notificationId;
     }
 
-    public void setId(NotificationMappingKey id) {
-        this.id = id;
+    public void setNotificationId(Long notificationId) {
+        this.notificationId = notificationId;
     }
 
     public Notification getNotification() {
@@ -71,11 +66,11 @@ public class NotificationInbox {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         NotificationInbox that = (NotificationInbox) o;
-        return isProcessed == that.isProcessed && Objects.equals(id, that.id) && Objects.equals(startedAt, that.startedAt);
+        return isProcessed == that.isProcessed && Objects.equals(notificationId, that.notificationId) && Objects.equals(startedAt, that.startedAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, isProcessed, startedAt);
+        return Objects.hash(notificationId, isProcessed, startedAt);
     }
 }

@@ -26,7 +26,7 @@ public class TaskUpdateService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException(taskId));
 
-        log.debug("Updating task {} to status {}. Current version: {}",
+        log.debug("Updating task with id: [{}] to status: [{}]. Current version: [{}]",
                 taskId, newStatus, task.getVersion());
 
         task.setStatus(newStatus);

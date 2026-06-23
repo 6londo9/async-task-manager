@@ -27,11 +27,12 @@ public class KafkaTaskListener {
             containerFactory = "kafkaTaskListenerContainerFactory"
     )
     public void consume(CreateTaskMessage createTaskMessage) {
-        log.info("Received task request: {}", createTaskMessage);
+        log.info("Received task request: [{}]", createTaskMessage);
         try {
             taskService.saveTask(createTaskMessage);
         } catch (TaskAlreadyExistsException ex) {
-            log.info("Task with name {}, which made by user {} already exists. Sending this info to the client", createTaskMessage.name(), createTaskMessage.userId());
+            log.info("Task with name: [{}], which made by user: [{}] already exists. Sending this info to the client", createTaskMessage.name(), createTaskMessage.userId());
+            notificationService.saveExceptionalTaskNotification(createTaskMessage.userId(), ex);
         }
     }
 }

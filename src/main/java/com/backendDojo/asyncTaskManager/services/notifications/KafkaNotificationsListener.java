@@ -23,7 +23,7 @@ public class KafkaNotificationsListener {
             containerFactory = "kafkaNotificationListenerContainerFactory"
     )
     public void consume(NotificationMessage notificationMessage) {
-        log.debug("Got notification message. Preparing to send it to the user");
+        log.info("Got notification message with id: [{}]. Preparing to send it to the user", notificationMessage.notificationId());
         notificationSenderService.processNotificationFromInbox(notificationMessage);
     }
 }

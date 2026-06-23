@@ -12,7 +12,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=dev
     networks:
       - app-network
     profiles:
@@ -31,9 +31,9 @@ services:
     networks:
       - app-network
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=prod
     profiles:
-      - docker
+      - prod
     restart: unless-stopped
   postgres:
     container_name: postgres
@@ -51,7 +51,7 @@ services:
       - app-network
     profiles:
       - dev
-      - docker
+      - prod
     command: ["postgres", "-c", "wal_level=logical"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d tasksdb"]
@@ -74,7 +74,7 @@ services:
       - app-network
     profiles:
       - dev
-      - docker
+      - prod
     restart: unless-stopped
   kafka:
     image: apache/kafka:latest
@@ -113,7 +113,7 @@ services:
       - app-network
     profiles:
       - dev
-      - docker
+      - prod
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"]
       interval: 30s
@@ -137,7 +137,7 @@ services:
       - app-network
     profiles:
       - dev
-      - docker
+      - prod
     restart: unless-stopped
   debezium:
     image: debezium/connect:2.7.3.Final
@@ -157,7 +157,7 @@ services:
       - app-network
     profiles:
       - dev
-      - docker
+      - prod
     restart: unless-stopped
 
 networks:
