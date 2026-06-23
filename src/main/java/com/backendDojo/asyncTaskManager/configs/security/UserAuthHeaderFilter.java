@@ -40,7 +40,7 @@ public class UserAuthHeaderFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (NumberFormatException e) {
-                log.warn("Invalid auth header value: {}", token, e);
+                log.warn("Invalid auth header value: [{}]", token, e);
             }
         }
 

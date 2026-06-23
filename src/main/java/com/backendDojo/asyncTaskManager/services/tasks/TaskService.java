@@ -86,7 +86,7 @@ public class TaskService {
     public void processTask() {
         taskRepository.findFirstByStatus(TaskStatus.NEW)
                 .ifPresent(task -> {
-                    log.info("Processing task {}", task.getId());
+                    log.info("Processing task with id: [{}], name: [{}], user: [{}]", task.getId(), task.getName(), task.getUserId());
                     taskExecutionService.processTaskWithRetry(task);
                 });
     }
@@ -95,7 +95,7 @@ public class TaskService {
     public void processFailedTasks() {
         taskRepository.findFirstByStatusAndRetryCountLessThan(TaskStatus.FAILED, retryCount)
                 .ifPresent(task -> {
-                    log.info("Retrying failed task {}", task.getId());
+                    log.info("Retrying failed task with id: [{}]", task.getId());
                     try {
                         taskExecutionService.processTaskWithRetry(task);
                     } catch (Exception ex) {
@@ -115,7 +115,7 @@ public class TaskService {
                         taskExecutionService.failTaskWithNotification(task, new TaskStallException(retryCount));
                     }
 
-                    log.info("Retrying stalled task {}, retries {}", task.getId(), task.getRetryCount());
+                    log.info("Retrying stalled task with id: [{}], retries: [{}]", task.getId(), task.getRetryCount());
                     taskExecutionService.processTaskWithRetry(task);
                 });
     }

@@ -1,14 +1,14 @@
 package com.backendDojo.asyncTaskManager.services.notifications;
 
+import com.backendDojo.asyncTaskManager.exceptions.NotificationInboxNotFoundException;
 import com.backendDojo.asyncTaskManager.models.dtos.kafka.NotificationMessage;
 import com.backendDojo.asyncTaskManager.models.entities.Notification;
 import com.backendDojo.asyncTaskManager.models.entities.NotificationInbox;
-import com.backendDojo.asyncTaskManager.models.entities.keys.NotificationMappingKey;
 import com.backendDojo.asyncTaskManager.repositories.NotificationInboxRepository;
 import com.backendDojo.asyncTaskManager.repositories.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,9 +23,6 @@ public class NotificationSenderService {
     private final NotificationRepository notificationRepository;
     private final NotificationInboxRepository notificationInboxRepository;
 
-    @Value("${app.stall-wait-time.notifications}")
-    private Long stallWaitTime;
-
     public NotificationSenderService(NotificationRepository notificationRepository, NotificationInboxRepository notificationInboxRepository) {
         this.notificationRepository = notificationRepository;
         this.notificationInboxRepository = notificationInboxRepository;
@@ -33,36 +30,39 @@ public class NotificationSenderService {
 
     @Transactional
     public void processNotificationFromInbox(NotificationMessage notificationMessage) {
-        NotificationMappingKey id = new NotificationMappingKey();
-        id.setTaskId(notificationMessage.taskId());
-        id.setUserId(notificationMessage.userId());
-        Optional<NotificationInbox> inboxOpt = notificationInboxRepository.findByIdWithLock(id);
+        if (notificationInboxRepository.existsByNotificationIdAndStartedAtIsNull(notificationMessage.notificationId())) {
+            log.warn("Already saved inbox notification with id: [{}]. Skipping", notificationMessage.notificationId());
+            return;
+        }
+
         OffsetDateTime now = OffsetDateTime.now();
 
-        NotificationInbox inbox;
-        if (inboxOpt.isPresent()) {
-            inbox = inboxOpt.get();
-            if (inbox.getStartedAt() != null && inbox.getStartedAt().plusMinutes(stallWaitTime).isBefore(now)) {
-                return;
-            }
-        } else {
-            inbox = new NotificationInbox();
-            Optional<Notification> notificationOpt = notificationRepository.findById(id);
-            if (notificationOpt.isEmpty()) {
-                log.error("No notification found with id {}", id);
-                return;
-            }
-            inbox.setNotification(notificationOpt.get());
+        Optional<Notification> notificationOpt = notificationRepository.findById(notificationMessage.notificationId());
+        if (notificationOpt.isEmpty()) {
+            log.error("No notification found with id: [{}]", notificationMessage.notificationId());
+            return;
         }
+        NotificationInbox inbox = new NotificationInbox();
+        inbox.setNotification(notificationOpt.get());
         inbox.setStartedAt(now);
-        notificationInboxRepository.save(inbox);
+        try {
+            notificationInboxRepository.save(inbox);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Concurrent saving of inbox notification with id: [{}]. Skipping", notificationMessage.notificationId(), ex);
+            return;
+        }
 
-        log.info("Sending notification message to the user: [{}] about task: [{}] with status: [{}]",
-                inbox.getNotification().getTask().getUserId(),
-                inbox.getNotification().getTask().getName(),
-                inbox.getNotification().getTask().getStatus());
+        this.sendNotificationToUser(inbox);
+    }
 
-        inbox.setProcessed(true);
-        notificationInboxRepository.save(inbox);
+    @Transactional
+    public void sendNotificationToUser(NotificationInbox notificationInbox) {
+        NotificationInbox savedInbox = notificationInboxRepository.findById(notificationInbox.getNotificationId())
+                .orElseThrow(() -> new NotificationInboxNotFoundException(notificationInbox.getNotificationId()));
+
+        log.info("Sending notification with id: [{}], message: [{}]", savedInbox.getNotificationId(), savedInbox.getNotification().getMessage());
+
+        savedInbox.setProcessed(true);
+        notificationInboxRepository.save(savedInbox);
     }
 }
