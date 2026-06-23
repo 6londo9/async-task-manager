@@ -16,6 +16,40 @@ jobs:
           cache: 'maven'
       - name: Compile
         run: mvn clean compile
+  liquibase:
+    runs-on: ubuntu-latest
+    needs: compile
+    services:
+      postgres-db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: github_actions
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Liquibase
+        uses: liquibase/setup-liquibase@v3
+        with:
+          version: '5.0.3'
+          edition: 'community'
+      - name: Install Database Driver
+        run: liquibase lpm add postgresql --global
+      - name: Lint and Validate Scripts
+        env:
+          LIQUIBASE_COMMAND_URL: jdbc:postgresql://localhost:5432/github_actions
+          LIQUIBASE_COMMAND_USERNAME: user
+          LIQUIBASE_COMMAND_PASSWORD: password
+          LIQUIBASE_COMMAND_CHANGELOG_FILE: src/main/resources/db/changelog/db.changelog-master.xml
+        run: liquibase update
   test:
     runs-on: ubuntu-latest
     needs: compile
