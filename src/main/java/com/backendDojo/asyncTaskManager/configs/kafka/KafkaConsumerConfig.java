@@ -2,7 +2,6 @@ package com.backendDojo.asyncTaskManager.configs.kafka;
 
 import com.backendDojo.asyncTaskManager.models.dtos.kafka.CreateTaskMessage;
 import com.backendDojo.asyncTaskManager.models.dtos.kafka.NotificationMessage;
-import com.backendDojo.asyncTaskManager.models.dtos.TaskRequestDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;

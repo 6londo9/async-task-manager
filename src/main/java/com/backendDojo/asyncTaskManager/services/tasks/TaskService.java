@@ -78,12 +78,12 @@ public class TaskService {
     }
 
 //    @Scheduled(fixedDelay = 1000)
-//    public void processTask() {
-//        taskExecutionService.processNewTaskWithLock();
-//    }
+    public void processTaskWithLock() {
+        taskExecutionService.processNewTaskWithLock();
+    }
 
     @Scheduled(fixedDelay = 1_000)
-    public void processTask() {
+    public void processTaskWithRetries() {
         taskRepository.findFirstByStatus(TaskStatus.NEW)
                 .ifPresent(task -> {
                     log.info("Processing task with id: [{}], name: [{}], user: [{}]", task.getId(), task.getName(), task.getUserId());

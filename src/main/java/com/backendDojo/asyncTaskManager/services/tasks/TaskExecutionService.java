@@ -9,6 +9,8 @@ import jakarta.annotation.PreDestroy;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -55,7 +57,11 @@ public class TaskExecutionService {
             propagation = Propagation.REQUIRES_NEW
     )
     @Retryable(
-            value = OptimisticLockException.class,
+            value = {
+                    OptimisticLockException.class,
+                    OptimisticLockingFailureException.class,
+                    ObjectOptimisticLockingFailureException.class
+            },
             maxRetriesString = "${app.retry-count.tasks}",
             delay = 500
     )
@@ -75,10 +81,10 @@ public class TaskExecutionService {
             currentTask.setStatus(TaskStatus.IN_PROGRESS);
             currentTask.setStartedAt(OffsetDateTime.now());
 
-            Task savedTask = taskRepository.save(currentTask);
+            Task savedTask = taskRepository.saveAndFlush(currentTask);
 
             executorService.submit(() -> executeTaskWithNewConnection(savedTask));
-        } catch (OptimisticLockException e) {
+        } catch (OptimisticLockException | OptimisticLockingFailureException e) {
             log.warn("Concurrent modification detected for task with id: [{}]", task.getId());
             throw e;
         }
@@ -90,6 +96,7 @@ public class TaskExecutionService {
                 .ifPresent(task -> {
                     log.info("Worker picked task with id: [{}] with SKIP LOCKED", task.getId());
                     task.setStatus(TaskStatus.IN_PROGRESS);
+                    task.setStartedAt(OffsetDateTime.now());
                     Task savedTask = taskRepository.save(task);
                     executorService.submit(() ->
                             taskStatusService.executeTask(savedTask));
@@ -98,7 +105,10 @@ public class TaskExecutionService {
 
     @Transactional
     @Retryable(
-            value = OptimisticLockException.class,
+            value = {
+                    OptimisticLockException.class,
+                    OptimisticLockingFailureException.class
+            },
             maxRetriesString = "${app.retry-count.tasks}",
             delay = 500
     )
@@ -110,7 +120,7 @@ public class TaskExecutionService {
                     "Error: " + ex.getMessage()
             );
             notificationService.saveTaskResultNotification(task.getId(), ADMIN_ID);
-        } catch (OptimisticLockException e) {
+        } catch (OptimisticLockException | OptimisticLockingFailureException e) {
             log.warn("Concurrent modification detected for task with id: [{}]", task.getId());
             throw e;
         }

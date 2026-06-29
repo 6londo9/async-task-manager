@@ -2,16 +2,23 @@ package com.backendDojo.asyncTaskManager.services.tasks;
 
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
+import com.backendDojo.asyncTaskManager.services.notifications.NotificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TaskStatusService {
 
-    private final TaskUpdateService taskUpdateService;
+    private static final Logger log = LoggerFactory.getLogger(TaskStatusService.class);
 
-    public TaskStatusService(TaskUpdateService taskUpdateService) {
+    private final TaskUpdateService taskUpdateService;
+    private final NotificationService notificationService;
+
+    public TaskStatusService(TaskUpdateService taskUpdateService, NotificationService notificationService) {
         this.taskUpdateService = taskUpdateService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -23,6 +30,8 @@ public class TaskStatusService {
                     TaskStatus.COMPLETED,
                     "Task completed successfully"
             );
+            log.info("Task with id: [{}] completed successfully", task.getId());
+            notificationService.saveTaskResultNotification(task.getId(), task.getUserId());
         } catch (Exception e) {
             taskUpdateService.updateTaskStatus(
                     task.getId(),

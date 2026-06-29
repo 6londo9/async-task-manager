@@ -2,10 +2,10 @@ package com.backendDojo.asyncTaskManager;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.resilience.annotation.EnableResilientMethods;
 
+@EnableResilientMethods
 @SpringBootApplication
-@EnableScheduling
 public class AsyncTaskManagerApplication {
 
     public static void main(String[] args) {
