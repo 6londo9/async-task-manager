@@ -3,3 +3,13 @@ spring:
     url: jdbc:postgresql://postgres:5432/tasksdb
   kafka:
     bootstrap-servers: kafka:9092
+logging:
+  group:
+    app: com.backendDojo.asyncTaskManager
+    kafka: org.apache.kafka, org.springframework.kafka
+    sql: org.hibernate.SQL, org.hibernate.orm.jdbc.bind
+  level:
+    root: INFO
+    app: DEBUG
+    kafka: INFO
+    sql: WARN

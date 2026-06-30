@@ -5,6 +5,7 @@ import com.backendDojo.asyncTaskManager.models.entities.Notification;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.repositories.NotificationRepository;
 import com.backendDojo.asyncTaskManager.repositories.TaskRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public class NotificationService {
     private void saveNotificationInternal(Long userId, String message) {
         Notification notification = new Notification();
         notification.setUserId(userId);
-        notification.setMessage(message);
+        notification.setMessage(StringUtils.abbreviate(message, 300));
 
         notification = notificationRepository.save(notification);
         log.info("Notification with id: [{}] saved successfully for userId: [{}] with message: [{}]", notification.getId(), userId, message);

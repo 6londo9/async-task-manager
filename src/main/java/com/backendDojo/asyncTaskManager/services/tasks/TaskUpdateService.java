@@ -4,6 +4,7 @@ import com.backendDojo.asyncTaskManager.exceptions.TaskNotFoundException;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
 import com.backendDojo.asyncTaskManager.repositories.TaskRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class TaskUpdateService {
                 taskId, newStatus, task.getVersion());
 
         task.setStatus(newStatus);
-        task.setResult(result);
+        task.setResult(StringUtils.abbreviate(result, 255));
         taskRepository.save(task);
     }
 }

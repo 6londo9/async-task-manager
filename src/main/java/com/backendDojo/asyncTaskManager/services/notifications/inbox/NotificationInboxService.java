@@ -27,11 +27,21 @@ public class NotificationInboxService {
         this.notificationSenderService = notificationSenderService;
     }
 
+    @Scheduled(fixedDelay = 1_000)
+    @Transactional
+    public void processTask() {
+        notificationInboxRepository.findFirstNonProcessedNotificationWithLock()
+                .ifPresent(notificationInbox -> {
+                    log.info("Trying to send notification with id: [{}]", notificationInbox.getNotificationId());
+                    notificationSenderService.sendNotificationToUser(notificationInbox);
+                });
+    }
+
     @Scheduled(fixedRate = 90_000)
     @Transactional
     public void processStalledNotifications() {
         OffsetDateTime now = OffsetDateTime.now();
-        notificationInboxRepository.findFirstStalledNotificationWithLock(now.minusSeconds(stallWaitTime))
+        notificationInboxRepository.findFirstStalledNotificationWithLock(now.minusMinutes(stallWaitTime))
                 .ifPresent(notificationInbox -> {
                     log.info("Retrying to send stalled notification with id: [{}]", notificationInbox.getNotificationId());
                     notificationSenderService.sendNotificationToUser(notificationInbox);

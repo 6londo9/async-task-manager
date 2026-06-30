@@ -66,11 +66,11 @@ public class NotificationInbox {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         NotificationInbox that = (NotificationInbox) o;
-        return isProcessed == that.isProcessed && Objects.equals(notificationId, that.notificationId) && Objects.equals(startedAt, that.startedAt);
+        return isProcessed == that.isProcessed && Objects.equals(notificationId, that.notificationId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(notificationId, isProcessed, startedAt);
+        return Objects.hash(notificationId, isProcessed);
     }
 }

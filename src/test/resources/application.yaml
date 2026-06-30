@@ -2,7 +2,7 @@ spring:
   application:
     name: asyncTaskManager
   datasource:
-    url: jdbc:postgresql://localhost:5432/tasksdb
+    url: jdbc:postgresql://postgres:5432/tasksdb
     username: user
     password: password
     hikari:
@@ -25,7 +25,7 @@ spring:
       register-mbeans: true
       pool-name: TaskServicePool
   jpa:
-#    show-sql: true
+    #    show-sql: true
     properties:
       hibernate:
         format_sql: true
@@ -39,22 +39,19 @@ spring:
     enabled: true
     change-log: classpath:/db/changelog/db.changelog-master.xml
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: kafka:9092
     streams:
       application-id: asyncTaskManagerCdcTransformer
+  profiles:
+    active: tests
 worker:
   pool:
     size: 9
-logging:
-  group:
-    app: com.backendDojo.asyncTaskManager
-    kafka: org.apache.kafka, org.springframework.kafka
-    sql: org.hibernate.SQL, org.hibernate.orm.jdbc.bind
-  level:
-    root: INFO
-    app: DEBUG
-    kafka: INFO
-    sql: WARN
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 app:
   stall-wait-time:
     tasks: 15 # Stored in minutes
