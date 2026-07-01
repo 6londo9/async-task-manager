@@ -30,7 +30,7 @@ class KafkaStreamNotificationCdcTopologyConfigurationTest {
     private final JsonMapper mapper = new JsonMapper();
 
     @Test
-    void mapsWrappedDebeziumCreateEventToNotificationMessage() throws Exception {
+    void mapsWrappedDebeziumCreateEventToNotificationMessage() {
         try (TopologyTestDriver driver = newDriver()) {
             TestInputTopic<String, JsonNode> input = inputTopic(driver);
             TestOutputTopic<String, NotificationMessage> output = outputTopic(driver);
@@ -52,7 +52,7 @@ class KafkaStreamNotificationCdcTopologyConfigurationTest {
     }
 
     @Test
-    void mapsUnwrappedDebeziumCreateEventToNotificationMessage() throws Exception {
+    void mapsUnwrappedDebeziumCreateEventToNotificationMessage() {
         try (TopologyTestDriver driver = newDriver()) {
             TestInputTopic<String, JsonNode> input = inputTopic(driver);
             TestOutputTopic<String, NotificationMessage> output = outputTopic(driver);
@@ -69,7 +69,7 @@ class KafkaStreamNotificationCdcTopologyConfigurationTest {
     }
 
     @Test
-    void ignoresNonCreateDebeziumEvents() throws Exception {
+    void ignoresNonCreateDebeziumEvents() {
         try (TopologyTestDriver driver = newDriver()) {
             TestInputTopic<String, JsonNode> input = inputTopic(driver);
             TestOutputTopic<String, NotificationMessage> output = outputTopic(driver);
@@ -86,7 +86,7 @@ class KafkaStreamNotificationCdcTopologyConfigurationTest {
     }
 
     @Test
-    void rejectsMalformedCreateEvent() throws Exception {
+    void rejectsMalformedCreateEvent() {
         try (TopologyTestDriver driver = newDriver()) {
             TestInputTopic<String, JsonNode> input = inputTopic(driver);
 
@@ -106,13 +106,15 @@ class KafkaStreamNotificationCdcTopologyConfigurationTest {
         topics.setNotifications(NOTIFICATIONS_TOPIC);
 
         StreamsBuilder builder = new StreamsBuilder();
-        new KafkaStreamNotificationCdcTopologyConfiguration().notificationStream(builder, topics, mapper);
+        KafkaStreamNotificationCdcTopologyConfiguration configuration =
+                new KafkaStreamNotificationCdcTopologyConfiguration();
+        configuration.notificationStream(builder, topics, mapper);
 
         Properties properties = new Properties();
         properties.put("application.id", "topology-test");
         properties.put("bootstrap.servers", "dummy:9092");
-        properties.put("default.key.serde", Serdes.String().getClass().getName());
-        properties.put("default.value.serde", Serdes.String().getClass().getName());
+        properties.put("default.key.serde", Serdes.StringSerde.class);
+        properties.put("default.value.serde", Serdes.StringSerde.class);
         return new TopologyTestDriver(builder.build(), properties);
     }
 
@@ -132,7 +134,7 @@ class KafkaStreamNotificationCdcTopologyConfigurationTest {
         );
     }
 
-    private JsonNode json(String value) throws Exception {
+    private JsonNode json(String value) {
         return mapper.readTree(value);
     }
 }
