@@ -5,6 +5,7 @@ import com.backendDojo.asyncTaskManager.models.entities.NotificationInbox;
 import com.backendDojo.asyncTaskManager.models.entities.Task;
 import com.backendDojo.asyncTaskManager.models.enums.TaskStatus;
 import com.backendDojo.asyncTaskManager.services.notifications.inbox.NotificationInboxService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,14 +37,14 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
     private NotificationInboxService notificationInboxService;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void missingUserHeaderIsRejected() throws Exception {
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"name":"missing-user","duration":1}
-                                """))
+                        .content(taskRequest("missing-user")))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -52,9 +53,7 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/tasks")
                         .header(AUTH_HEADER_NAME, 11L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"name":" ","duration":1}
-                                """))
+                        .content(taskRequest(" ")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -63,9 +62,7 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/tasks")
                         .header(AUTH_HEADER_NAME, 11L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"name":"%s","duration":1}
-                                """.formatted(uniqueName("accepted"))))
+                        .content(taskRequest(uniqueName("accepted"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Задача принята в обработку"));
     }
@@ -116,9 +113,7 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/tasks")
                         .header(AUTH_HEADER_NAME, 21L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"name":"%s","duration":1}
-                                """.formatted(taskName)))
+                        .content(taskRequest(taskName)))
                 .andExpect(status().isOk());
 
         Awaitility.await()
@@ -134,11 +129,11 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
                 .untilAsserted(() -> {
                     List<Notification> notifications = notificationRepository.findAll();
                     assertEquals(1, notifications.size());
-                    assertEquals(21L, notifications.get(0).getUserId());
-                    assertTrue(notifications.get(0).getMessage().contains(taskName));
+                    assertEquals(21L, notifications.getFirst().getUserId());
+                    assertTrue(notifications.getFirst().getMessage().contains(taskName));
 
-                    assertTrue(notificationInboxRepository.findById(notifications.get(0).getId()).isPresent());
-                    assertTrue(notificationInboxRepository.findById(notifications.get(0).getId()).orElseThrow().isProcessed());
+                    assertTrue(notificationInboxRepository.findById(notifications.getFirst().getId()).isPresent());
+                    assertTrue(notificationInboxRepository.findById(notifications.getFirst().getId()).orElseThrow().isProcessed());
                 });
     }
 
@@ -146,12 +141,12 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
     void duplicateTaskRequestCreatesExceptionalNotification() throws Exception {
         String taskName = uniqueName("duplicate");
 
-        postTask(31L, taskName);
+        postTask(taskName);
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30))
                 .untilAsserted(() -> assertEquals(1, taskRepository.findByUserId(31L).size()));
 
-        postTask(31L, taskName);
+        postTask(taskName);
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(60))
@@ -178,30 +173,32 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
 
         notificationInboxService.processStalledNotifications();
 
-        assertTrue(Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+        assertEquals(Boolean.TRUE, jdbcTemplate.queryForObject(
                 "select is_processed from notifications_inbox where notification_id = ?",
                 Boolean.class,
                 notificationId
-        )));
+        ));
     }
 
-    private void postTask(Long userId, String taskName) throws Exception {
+    private void postTask(String taskName) throws Exception {
         mockMvc.perform(post("/api/tasks")
-                        .header(AUTH_HEADER_NAME, userId)
+                        .header(AUTH_HEADER_NAME, 31L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"name":"%s","duration":1}
-                                """.formatted(taskName)))
+                        .content(taskRequest(taskName)))
                 .andExpect(status().isOk());
     }
 
-    private Task saveTask(String name, Long userId) {
+    private String taskRequest(String name) throws Exception {
+        return objectMapper.writeValueAsString(new TaskRequestBody(name, 1L));
+    }
+
+    private void saveTask(String name, Long userId) {
         Task task = new Task();
         task.setName(name);
         task.setDuration(1L);
         task.setUserId(userId);
         task.setStatus(TaskStatus.NEW);
-        return taskRepository.save(task);
+        taskRepository.save(task);
     }
 
     private Task findOnlyTaskByName(String taskName) {
@@ -222,5 +219,8 @@ class TaskControllerIntegrationTest extends AbstractIntegrationTest {
 
     private String uniqueName(String prefix) {
         return prefix + "-" + UUID.randomUUID();
+    }
+
+    private record TaskRequestBody(String name, Long duration) {
     }
 }

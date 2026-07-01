@@ -6,7 +6,6 @@ import com.backendDojo.asyncTaskManager.services.notifications.NotificationServi
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TaskStatusService {
@@ -21,7 +20,7 @@ public class TaskStatusService {
         this.notificationService = notificationService;
     }
 
-    @Transactional
+//    @Transactional
     public void executeTask(Task task) {
         try {
             Thread.sleep(task.getDuration());
