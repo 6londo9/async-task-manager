@@ -1,3 +1,4 @@
+# Can be better if checks which directory was changed, so it can reduce external checks
 name: PR checks
 
 on: [pull_request]

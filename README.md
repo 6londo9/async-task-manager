@@ -5,13 +5,13 @@ Async Task Manager is a small Spring Boot service for submitting tasks and proce
 The main flow is:
 
 ```text
-REST request -> Kafka task topic -> task worker -> PostgreSQL task result
+REST request -> Kafka task topic -> task worker -> PostgreSQL task result ->
              -> notification row -> Debezium CDC -> Kafka Streams -> notification inbox
 ```
 
 The project demonstrates REST APIs, Kafka, PostgreSQL, optimistic/pessimistic locking, scheduled workers, retry handling, Debezium CDC, Kafka Streams, and a transactional inbox-style notification flow.
 
-## Tech Stack
+### Tech Stack
 
 - Java 21
 - Spring Boot
@@ -23,7 +23,7 @@ The project demonstrates REST APIs, Kafka, PostgreSQL, optimistic/pessimistic lo
 - Docker Compose
 - Maven
 
-## Running The Project
+### Running The Project
 
 Prerequisites:
 
@@ -32,7 +32,10 @@ Prerequisites:
 - Maven
 - `make`
 
-### The Makefile wraps the common commands:
+![Example usage](./example/example.gif)
+
+<details>
+<summary><h3 style="display: inline;">The Makefile wraps the common commands:</h3></summary>
 
 #### Builds the application jar with tests skipped:
 
@@ -73,7 +76,10 @@ make restart-app-dev
 make restart-app-prod
 ```
 
-## Local URLs
+</details>
+<br>
+<details>
+<summary><h3 style="display: inline;">Local URLs:</h3></summary>
 
 After `make run-dev`, these services are available:
 
@@ -100,7 +106,10 @@ email: pgadmin4@pgadmin.org
 password: admin
 ```
 
-## Authentication
+</details>
+<br>
+<details>
+<summary><h3 style="display: inline;">Authentication:</h3></summary>
 
 The API uses a simple user header:
 
@@ -110,9 +119,12 @@ X-User-Id: 1
 
 Use `X-User-Id: 0` as the admin user. Admin can read all tasks and call actuator endpoints.
 
-## API Examples
+</details>
+<br>
+<details>
+<summary><h3 style="display: inline;">API Examples:</h3></summary>
 
-### Create A Task
+#### Create A Task
 
 ```bash
 curl -i -X POST http://localhost:8080/api/tasks \
@@ -136,7 +148,7 @@ Task processing is asynchronous, so the task may not be visible or completed imm
 
 `duration` is optional. If it is omitted, the application generates a random duration.
 
-### List Current User Tasks
+#### List Current User Tasks
 
 ```bash
 curl -s http://localhost:8080/api/tasks \
@@ -157,30 +169,33 @@ Example response:
 ]
 ```
 
-### Get One Task
+#### Get One Task
 
 ```bash
 curl -s http://localhost:8080/api/tasks/1 \
   -H "X-User-Id: 1" | jq
 ```
 
-### List All Tasks As Admin
+#### List All Tasks As Admin
 
 ```bash
 curl -s http://localhost:8080/api/tasks \
   -H "X-User-Id: 0" | jq
 ```
 
-### Check Application Health
+#### Check Application Health
 
 ```bash
 curl -s http://localhost:8080/actuator/health \
   -H "X-User-Id: 0" | jq
 ```
 
-## How To Check The Async Flow
+</details>
+<br>
+<details>
+<summary><h3 style="display: inline;">How To Check The Async Flow:</h3></summary>
 
-### 1. Check REST Result
+#### 1. Check REST Result
 
 Submit a task, wait a second or two, then list tasks:
 
@@ -191,7 +206,7 @@ curl -s http://localhost:8080/api/tasks \
 
 The task should move from `NEW` to `IN_PROGRESS` to `COMPLETED`.
 
-### 2. Check PostgreSQL
+#### 2. Check PostgreSQL
 
 Open psql inside the PostgreSQL container:
 
@@ -222,7 +237,7 @@ After a task completes, you should see:
 - one inbox row in `notifications_inbox`
 - `notifications_inbox.is_processed = true` after the inbox worker sends/processes it
 
-### 3. Check Kafka UI
+#### 3. Check Kafka UI
 
 Open:
 
@@ -236,7 +251,7 @@ Useful topics:
 - `cdc.public.notifications` - Debezium events from the `notifications` table
 - `notifications` - mapped notification messages produced by Kafka Streams
 
-### 4. Check Debezium Connector
+#### 4. Check Debezium Connector
 
 The application registers the Debezium connector on startup.
 
@@ -258,10 +273,15 @@ You can inspect it with:
 curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq
 ```
 
-## Notes
+</details>
+<br>
+<details>
+<summary><h3 style="display: inline;">Notes:</h3></summary>
 
 - Schedulers are enabled by default and can be disabled with `app.scheduler.enabled=false`.
 - `POST /api/tasks` only publishes a Kafka message; persistence happens asynchronously when the Kafka listener consumes it.
 - User `0` is treated as admin.
 - Duplicate task names for the same user are rejected during task saving.
 - The README can later include a terminal GIF or video here.
+
+</details>
