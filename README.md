@@ -77,7 +77,6 @@ make restart-app-prod
 ```
 
 </details>
-<br>
 <details>
 <summary><h3 style="display: inline;">Local URLs:</h3></summary>
 
@@ -107,7 +106,6 @@ password: admin
 ```
 
 </details>
-<br>
 <details>
 <summary><h3 style="display: inline;">Authentication:</h3></summary>
 
@@ -120,7 +118,6 @@ X-User-Id: 1
 Use `X-User-Id: 0` as the admin user. Admin can read all tasks and call actuator endpoints.
 
 </details>
-<br>
 <details>
 <summary><h3 style="display: inline;">API Examples:</h3></summary>
 
@@ -191,7 +188,6 @@ curl -s http://localhost:8080/actuator/health \
 ```
 
 </details>
-<br>
 <details>
 <summary><h3 style="display: inline;">How To Check The Async Flow:</h3></summary>
 
@@ -274,7 +270,6 @@ curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq
 ```
 
 </details>
-<br>
 <details>
 <summary><h3 style="display: inline;">Notes:</h3></summary>
 
