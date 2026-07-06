@@ -62,6 +62,10 @@ app:
   retry-count:
     tasks: 3
     notification-inbox: 3
+  schedulers:
+    inbox:
+      cleanup-cron-time: 0 0 0 1 */2 * # Runs every two months
+      cleanup-for-time: 2 # Stored in months
   kafka:
     topics:
       tasks: tasks
