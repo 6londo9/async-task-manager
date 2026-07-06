@@ -26,7 +26,7 @@ public class TaskService {
 
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
-    @Value("${app.retry-count.tasks}")
+    @Value("${app.retry-count.tasks:3}")
     private int retryCount;
     @Value("${app.stall-wait-time.tasks}")
     private int stallWaitTime;

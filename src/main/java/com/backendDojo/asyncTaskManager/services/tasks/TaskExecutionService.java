@@ -18,6 +18,8 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.OffsetDateTime;
@@ -98,8 +100,7 @@ public class TaskExecutionService {
                     task.setStatus(TaskStatus.IN_PROGRESS);
                     task.setStartedAt(OffsetDateTime.now());
                     Task savedTask = taskRepository.save(task);
-                    executorService.submit(() ->
-                            taskStatusService.executeTask(savedTask));
+                    this.submitAfterCommit(() -> taskStatusService.executeTask(savedTask));
                 });
     }
 
@@ -157,6 +158,29 @@ public class TaskExecutionService {
                 );
             }
             return null;
+        });
+    }
+
+    /**
+     * This is a critical method in our flow, because of race condition between this class methods
+     * and executor's transaction.
+     * <br>
+     * So in a result project should use either SKIP LOCKED or Optimistic locks for the updating of the same entities.
+     *
+     * @param task Runnable task
+     * @see <a href="https://blog.arkency.com/2015/10/run-it-in-background-job-after-commit/">Explanation</a>
+     */
+    private void submitAfterCommit(Runnable task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            executorService.submit(task);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                executorService.submit(task);
+            }
         });
     }
 

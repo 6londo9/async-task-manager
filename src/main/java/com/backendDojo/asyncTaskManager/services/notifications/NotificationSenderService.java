@@ -34,7 +34,7 @@ public class NotificationSenderService {
             value = {
                     DataIntegrityViolationException.class
             },
-            maxRetriesString = "${app.retry-count.notification-inbox}",
+            maxRetriesString = "${app.retry-count.notification-inbox:3}",
             delay = 500
     )
     public void processNotificationFromInbox(NotificationMessage notificationMessage) {

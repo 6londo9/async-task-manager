@@ -20,7 +20,6 @@ public class TaskStatusService {
         this.notificationService = notificationService;
     }
 
-//    @Transactional
     public void executeTask(Task task) {
         try {
             Thread.sleep(task.getDuration());
