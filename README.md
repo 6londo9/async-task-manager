@@ -20,6 +20,7 @@ The project demonstrates REST APIs, Kafka, PostgreSQL, optimistic/pessimistic lo
 - Kafka Streams
 - Debezium Connect
 - Liquibase
+- Redis
 - Docker Compose
 - Maven
 
