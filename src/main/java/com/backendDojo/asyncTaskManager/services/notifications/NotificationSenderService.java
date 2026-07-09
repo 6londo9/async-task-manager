@@ -8,13 +8,16 @@ import com.backendDojo.asyncTaskManager.repositories.NotificationInboxRepository
 import com.backendDojo.asyncTaskManager.repositories.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class NotificationSenderService {
@@ -23,10 +26,17 @@ public class NotificationSenderService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationInboxRepository notificationInboxRepository;
+    private final RedisTemplate<Long, NotificationInbox> notificationInboxRedisTemplate;
 
-    public NotificationSenderService(NotificationRepository notificationRepository, NotificationInboxRepository notificationInboxRepository) {
+    @Value("${app.redis.notification-inbox.ttl:60}")
+    private int inboxCacheTtl;
+
+    public NotificationSenderService(NotificationRepository notificationRepository,
+                                     NotificationInboxRepository notificationInboxRepository,
+                                     RedisTemplate<Long, NotificationInbox> notificationInboxRedisTemplate) {
         this.notificationRepository = notificationRepository;
         this.notificationInboxRepository = notificationInboxRepository;
+        this.notificationInboxRedisTemplate = notificationInboxRedisTemplate;
     }
 
     @Transactional
@@ -38,6 +48,19 @@ public class NotificationSenderService {
             delay = 500
     )
     public void processNotificationFromInbox(NotificationMessage notificationMessage) {
+        NotificationInbox cachedInbox = null;
+        try {
+            cachedInbox = notificationInboxRedisTemplate.opsForValue().get(notificationMessage.notificationId());
+        } catch (Exception ex) {
+            // Simply ignore redis exception to not ruin our main logic
+            log.warn("Something went wrong while getting notification inbox from redis cache, notificationId: [{}]",
+                    notificationMessage.notificationId(), ex);
+        }
+        if (cachedInbox != null) {
+            log.warn("Already saved inbox notification in cache with id: [{}]. Skipping", notificationMessage.notificationId());
+            return;
+        }
+
         if (notificationInboxRepository.existsById(notificationMessage.notificationId())) {
             log.warn("Already saved inbox notification with id: [{}]. Skipping", notificationMessage.notificationId());
             return;
@@ -55,6 +78,13 @@ public class NotificationSenderService {
         } catch (DataIntegrityViolationException ex) {
             log.warn("Concurrent saving of inbox notification with id: [{}]. Skipping", notificationMessage.notificationId());
             throw ex;
+        }
+        try {
+            notificationInboxRedisTemplate.opsForValue().set(notificationMessage.notificationId(), inbox, inboxCacheTtl, TimeUnit.SECONDS);
+        } catch (Exception ex) {
+            // Simply ignore redis exception to not ruin our main logic
+            log.warn("Something went wrong while saving notification inbox from redis cache, notificationId: [{}]",
+                    notificationMessage.notificationId(), ex);
         }
     }
 

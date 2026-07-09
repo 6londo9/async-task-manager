@@ -3,6 +3,7 @@ package com.backendDojo.asyncTaskManager;
 import com.backendDojo.asyncTaskManager.repositories.NotificationInboxRepository;
 import com.backendDojo.asyncTaskManager.repositories.NotificationRepository;
 import com.backendDojo.asyncTaskManager.repositories.TaskRepository;
+import com.redis.testcontainers.RedisContainer;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,13 @@ public class AbstractIntegrationTest {
 
     @Container
     @ServiceConnection
+    static RedisContainer redis = new RedisContainer("redis:latest")
+            .withNetwork(network)
+            .withNetworkAliases("redis")
+            .withCommand("--requirepass", "password", "--appendonly", "yes");
+
+    @Container
+    @ServiceConnection
     static KafkaContainer kafka = new KafkaContainer("apache/kafka:latest")
             .withNetwork(network)
             .withNetworkAliases("kafka")
@@ -74,6 +82,8 @@ public class AbstractIntegrationTest {
     static void dynamicProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         registry.add("app.debezium.url", debezium::getTarget);
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
     }
 
     @AfterEach
