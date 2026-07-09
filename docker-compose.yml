@@ -76,6 +76,21 @@ services:
       - dev
       - prod
     restart: unless-stopped
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    environment:
+      - REDIS_ARGS=--requirepass password --appendonly yes
+    networks:
+      - app-network
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
   kafka:
     image: apache/kafka:latest
     container_name: kafka
